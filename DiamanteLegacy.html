@@ -16,6 +16,7 @@
       color: #ffffff;
       font-family: 'Inter', sans-serif;
       margin: 0;
+      overscroll-behavior: none;
     }
     .neon-blue {
       color: #00f7ff;
@@ -38,15 +39,42 @@
       font-weight: bold;
       box-shadow: 0 0 8px #ffd700;
     }
-    .icon-hover {
-      transition: transform 0.3s ease, color 0.3s ease;
+    .icon-button {
+      background: linear-gradient(45deg, #00f7ff, #007bff);
+      padding: 10px;
+      border-radius: 50%;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
     }
-    .icon-hover:hover {
+    .icon-button:hover, .icon-button:focus {
       transform: scale(1.2);
-      color: #00f7ff;
+      box-shadow: 0 0 15px rgba(0, 247, 255, 0.7);
     }
-    .like-button:active {
+    .icon-button:active {
       transform: scale(0.95);
+    }
+    .tooltip {
+      visibility: hidden;
+      background: #2c2c2c;
+      color: #fff;
+      text-align: center;
+      padding: 5px 10px;
+      border-radius: 6px;
+      position: absolute;
+      z-index: 10;
+      bottom: 120%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+    .icon-button:hover .tooltip, .icon-button:focus .tooltip {
+      visibility: visible;
     }
     .comment-enter {
       opacity: 0;
@@ -73,16 +101,6 @@
       height: 100%;
       border-radius: 8px;
     }
-    .action-button {
-      background: linear-gradient(45deg, #00f7ff, #007bff);
-      padding: 8px 16px;
-      border-radius: 20px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .action-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(0, 247, 255, 0.5);
-    }
     .modal {
       background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(5px);
@@ -98,16 +116,16 @@
     }
     .modal-content {
       background: #2c2c2c;
-      padding: 24px;
+      padding: 1.5rem;
       border-radius: 12px;
-      max-width: 500px;
-      width: 90%;
+      max-width: 90%;
+      width: 500px;
       box-shadow: 0 0 20px rgba(0, 247, 255, 0.3);
     }
     .avatar-option {
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .avatar-option:hover {
+    .avatar-option:hover, .avatar-option:focus {
       transform: scale(1.1);
       box-shadow: 0 0 10px #00f7ff;
     }
@@ -128,6 +146,35 @@
       text-align: center;
       color: #ff4444;
       font-weight: bold;
+    }
+    @media (max-width: 640px) {
+      .header-logo {
+        height: 2.5rem;
+      }
+      .video-title {
+        font-size: 1.25rem;
+      }
+      .action-buttons {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .comment-section {
+        padding: 0.5rem;
+      }
+      .comment-box {
+        padding: 1rem;
+      }
+      .modal-content {
+        padding: 1rem;
+        width: 95%;
+      }
+      .feedback-section textarea {
+        font-size: 0.875rem;
+      }
+      .feedback-section button {
+        padding: 0.5rem 1.5rem;
+      }
     }
   </style>
 </head>
@@ -159,7 +206,7 @@
           <img
             src="https://i.postimg.cc/7ZTMyp55/Futura-Display-3-1.jpg"
             alt="Logo"
-            className="h-16 rounded"
+            className="header-logo h-16 sm:h-12 rounded"
           />
         </header>
       );
@@ -173,8 +220,8 @@
       };
 
       return (
-        <div className="mx-auto max-w-5xl mt-8">
-          <h2 className="text-2xl font-semibold neon-blue mb-4">NOVA ATUALIZAÇÃO DIAMANTE LEGACY! - CASSINO (+18)</h2>
+        <div className="mx-auto max-w-5xl mt-8 px-4 sm:px-2">
+          <h2 className="video-title text-2xl sm:text-xl font-semibold neon-blue mb-4">NOVA ATUALIZAÇÃO DIAMANTE LEGACY! - CASSINO (+18)</h2>
           {videoError ? (
             <div className="video-fallback">
               <p>Vídeo não carregou. Tente recarregar a página ou usar um servidor local (ex.: python -m http.server 8000).</p>
@@ -196,11 +243,12 @@
       );
     }
 
-    function VideoActions() {
+    function VideoActions({ onCommentClick }) {
       const [likes, setLikes] = React.useState(() => {
         const savedLikes = localStorage.getItem('likes');
         return savedLikes ? parseInt(savedLikes, 10) : 131;
       });
+      const [isFullscreen, setIsFullscreen] = React.useState(false);
 
       React.useEffect(() => {
         const interval = setInterval(() => {
@@ -221,19 +269,69 @@
         });
       };
 
+      const handleFullscreenToggle = () => {
+        const videoContainer = document.querySelector('.video-container');
+        if (!isFullscreen) {
+          if (videoContainer.requestFullscreen) {
+            videoContainer.requestFullscreen();
+          } else if (videoContainer.webkitRequestFullscreen) {
+            videoContainer.webkitRequestFullscreen();
+          } else if (videoContainer.msRequestFullscreen) {
+            videoContainer.msRequestFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+          }
+        }
+        setIsFullscreen(!isFullscreen);
+      };
+
       return (
-        <div className="flex items-center space-x-6 mt-6 max-w-5xl mx-auto">
+        <div className="action-buttons flex sm:flex-col items-center justify-center space-x-4 sm:space-x-0 sm:space-y-3 mt-6 max-w-5xl mx-auto px-4 sm:px-2">
           <button
             onClick={handleLikeClick}
-            className="action-button flex items-center text-gray-900 font-semibold like-button"
+            className="icon-button relative"
+            aria-label="Curtir"
           >
-            <i className="fas fa-thumbs-up icon-hover mr-2"></i> Curtir ({likes})
+            <i className="fas fa-thumbs-up text-lg"></i>
+            <span className="ml-2 sm:ml-0 text-sm">{likes}</span>
+            <span className="tooltip">Curtir</span>
           </button>
-          <button className="action-button flex items-center text-gray-900 font-semibold">
-            <i className="fas fa-thumbs-down icon-hover mr-2"></i> Não Curtir (12)
+          <button
+            className="icon-button relative"
+            aria-label="Não Curtir"
+          >
+            <i className="fas fa-thumbs-down text-lg"></i>
+            <span className="ml-2 sm:ml-0 text-sm">12</span>
+            <span className="tooltip">Não Curtir</span>
+          </button
+          <button
+            className="icon-button relative"
+            aria-label="Compartilhar"
+          >
+            <i className="fas fa-share text-lg"></i>
+            <span className="tooltip">Compartilhar</span>
           </button>
-          <button className="action-button flex items-center text-gray-900 font-semibold">
-            <i className="fas fa-share icon-hover mr-2"></i> Compartilhar
+          <button
+            onClick={handleFullscreenToggle}
+            className="icon-button relative"
+            aria-label={isFullscreen ? "Sair do Modo Tela Cheia" : "Entrar no Modo Tela Cheia"}
+          >
+            <i className={isFullscreen ? "fas fa-compress" : "fas fa-expand"}></i>
+            <span className="tooltip">{isFullscreen ? "Sair Tela Cheia" : "Tela Cheia"}</span>
+          </button>
+          <button
+            onClick={onCommentClick}
+            className="icon-button relative"
+            aria-label="Comentar"
+          >
+            <i className="fas fa-comment text-lg"></i>
+            <span className="tooltip">Comentar</span>
           </button>
         </div>
       );
@@ -265,7 +363,7 @@
       return (
         <div className="modal">
           <div className="modal-content">
-            <h2 className="text-xl neon-blue mb-4">Adicionar Comentário</h2>
+            <h2 className="text-xl sm:text-lg neon-blue mb-4">Adicionar Comentário</h2>
             <div className="mb-4">
               <label className="block text-sm mb-1">Seu Nome</label>
               <input
@@ -273,7 +371,7 @@
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Digite seu nome"
-                className="w-full p-2 bg-gray-800 text-white rounded neon-border focus:outline-none"
+                className="w-full p-2 bg-gray-800 text-white rounded neon-border focus:outline-none text-sm"
               />
             </div>
             <div className="mb-4">
@@ -296,20 +394,20 @@
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Escreva seu comentário..."
-                className="w-full p-2 bg-gray-800 text-white rounded neon-border focus:outline-none"
+                className="w-full p-2 bg-gray-800 text-white rounded neon-border focus:outline-none text-sm"
                 rows="4"
               ></textarea>
             </div>
             <div className="flex space-x-2">
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 action-button text-gray-900 font-semibold rounded-full"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-gray-900 font-semibold rounded-full text-sm"
               >
                 Publicar
               </button>
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-700 text-white rounded-full hover:bg-gray-600"
+                className="px-4 py-2 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-sm"
               >
                 Cancelar
               </button>
@@ -319,7 +417,7 @@
       );
     }
 
-    function Comments() {
+    function Comments({ openCommentModal }) {
       const [comments, setComments] = React.useState([
         { id: 1, user: "João Silva", avatar: "https://i.pravatar.cc/40?img=1", text: "Vídeo incrível, continue assim!", timestamp: "2 horas atrás", replies: [], isVip: true },
         { id: 2, user: "Maria Oliveira", avatar: "https://i.pravatar.cc/40?img=2", text: "Adorei o conteúdo, muito bem feito!", timestamp: "1 hora atrás", replies: [], isVip: false },
@@ -356,7 +454,6 @@
             text: comment,
             timestamp: "Agora",
             replies: [],
-
             isVip: false,
           },
         ]);
@@ -376,7 +473,7 @@
                     user: "Você",
                     text: replyText[commentId],
                     timestamp: "Agora",
-                    avatar: comment.avatar, // Use the same avatar as the commenter
+                    avatar: comment.avatar,
                   },
                 ],
               };
@@ -393,13 +490,18 @@
         setShowReply({ ...showReply, [commentId]: !showReply[commentId] });
       };
 
+      const openModal = () => {
+        setShowCommentModal(true);
+        if (onCommentClick) onCommentClick();
+      };
+
       return (
-        <div className="max-w-5xl mx-auto mt-12">
-          <h2 className="text-2xl font-semibold neon-blue mb-6">Comentários</h2>
+        <div className="comment-section max-w-5xl mx-auto mt-12 px-4 sm:px-2">
+          <h2 className="text-2xl sm:text-xl font-semibold neon-blue mb-6">Comentários</h2>
           <div className="mb-8">
             <button
-              onClick={() => setShowCommentModal(true)}
-              className="w-full p-4 bg-gray-800 text-white rounded-lg neon-border text-left"
+              onClick={openModal}
+              className="w-full p-4 bg-gray-800 text-white rounded-lg neon-border text-left text-sm"
             >
               Adicione um comentário...
             </button>
@@ -412,24 +514,24 @@
           {comments.map((comment) => (
             <div
               key={comment.id}
-              className="mb-6 p-6 bg-gray-800 rounded-lg neon-border comment-enter comment-enter-active"
+              className="comment-box mb-6 p-6 sm:p-4 bg-gray-800 rounded-lg neon-border comment-enter comment-enter-active"
             >
-              <div className="flex items-start space-x-4">
+              <div className="flex items-start space-x-4 sm:space-x-2">
                 <img
                   src={comment.avatar}
                   alt={comment.user}
-                  className="w-10 h-10 rounded-full border-2 border-neon-blue"
+                  className="w-10 h-10 sm:w-8 sm:h-8 rounded-full border-2 border-neon-blue"
                 />
                 <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <p className="font-semibold neon-blue">{comment.user}</p>
-                    {comment.isVip && <span className="vip-badge">Membro VIP</span>}
-                    <span className="text-gray-400 text-sm">{comment.timestamp}</span>
+                  <div className="flex items-center space-x-2 flex-wrap">
+                    <p className="font-semibold neon-blue text-sm">{comment.user}</p>
+                    {comment.isVip && <span className="vip-badge text-xs">Membro VIP</span>}
+                    <span className="text-gray-400 text-xs">{comment.timestamp}</span>
                   </div>
-                  <p className="mt-1 text-gray-200">{comment.text}</p>
+                  <p className="mt-1 text-gray-200 text-sm">{comment.text}</p>
                   <button
                     onClick={() => toggleReply(comment.id)}
-                    className="mt-2 text-sm text-neon-blue hover:underline"
+                    className="mt-2 text-xs text-neon-blue hover:underline"
                   >
                     Responder
                   </button>
@@ -439,19 +541,19 @@
                         value={replyText[comment.id] || ""}
                         onChange={(e) => setReplyText({ ...replyText, [comment.id]: e.target.value })}
                         placeholder="Escreva sua resposta..."
-                        className="w-full p-3 bg-gray-900 text-white rounded-lg neon-border focus:outline-none focus:ring-2 focus:ring-neon-blue transition"
+                        className="w-full p-3 bg-gray-900 text-white rounded-lg neon-border focus:outline-none focus:ring-2 focus:ring-neon-blue transition text-sm"
                         rows="3"
                       ></textarea>
                       <div className="flex space-x-2 mt-2">
                         <button
                           onClick={(e) => handleReplySubmit(comment.id, e)}
-                          className="px-4 py-1 action-button text-gray-900 font-semibold rounded-full"
+                          className="px-4 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-gray-900 font-semibold rounded-full text-xs"
                         >
                           Enviar
                         </button>
                         <button
                           onClick={() => toggleReply(comment.id)}
-                          className="px-4 py-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
+                          className="px-4 py-1 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-xs"
                         >
                           Cancelar
                         </button>
@@ -459,20 +561,20 @@
                     </div>
                   )}
                   {comment.replies.length > 0 && (
-                    <div className="mt-4 ml-8">
+                    <div className="mt-4 ml-8 sm:ml-4">
                       {comment.replies.map((reply) => (
                         <div key={reply.id} className="flex items-start space-x-3 mt-3">
                           <img
                             src={reply.avatar || "https://wallpapers.com/images/hd/cute-avatar-profile-picture-23yuqpb8wz1dqqqv.jpg"}
                             alt={reply.user}
-                            className="w-8 h-8 rounded-full border-2 border-neon-blue"
+                            className="w-8 h-8 sm:w-6 sm:h-6 rounded-full border-2 border-neon-blue"
                           />
                           <div>
                             <div className="flex items-center space-x-2">
-                              <p className="font-semibold neon-blue">{reply.user}</p>
+                              <p className="font-semibold neon-blue text-sm">{reply.user}</p>
                               <span className="text-gray-400 text-xs">{reply.timestamp}</span>
                             </div>
-                            <p className="text-gray-200">{reply.text}</p>
+                            <p className="text-gray-200 text-sm">{reply.text}</p>
                           </div>
                         </div>
                       ))}
@@ -488,14 +590,14 @@
 
     function Feedback() {
       return (
-        <div className="max-w-5xl mx-auto mt-12 mb-12">
-          <h2 className="text-2xl font-semibold neon-blue mb-6">Feedback</h2>
+        <div className="feedback-section max-w-5xl mx-auto mt-12 mb-12 px-4 sm:px-2">
+          <h2 className="text-2xl sm:text-xl font-semibold neon-blue mb-6">Feedback</h2>
           <textarea
             placeholder="Envie seu feedback sobre o vídeo..."
-            className="w-full p-4 bg-gray-800 text-white rounded-lg neon-border focus:outline-none focus:ring-2 focus:ring-neon-blue transition"
+            className="w-full p-4 bg-gray-800 text-white rounded-lg neon-border focus:outline-none focus:ring-2 focus:ring-neon-blue transition text-sm"
             rows="5"
           ></textarea>
-          <button className="mt-3 px-6 py-2 action-button text-gray-900 font-semibold rounded-full">
+          <button className="mt-3 px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-gray-900 font-semibold rounded-full text-sm">
             Enviar
           </button>
         </div>
@@ -503,17 +605,23 @@
     }
 
     function App() {
+      const [showCommentModal, setShowCommentModal] = React.useState(false);
+
+      const handleCommentClick = () => {
+        setShowCommentModal(true);
+      };
+
       return (
         <ErrorBoundary>
           <div>
             <Header />
-            <main className="p-6">
+            <main className="p-6 sm:p-4">
               <VideoPlayer />
-              <VideoActions />
-              <Comments />
+              <VideoActions onCommentClick={handleCommentClick} />
+              <Comments openCommentModal={() => setShowCommentModal(true)} />
               <Feedback />
             </main>
-            <footer className="bg-gray-900 p-4 text-center text-gray-400">
+            <footer className="bg-gray-900 p-4 text-center text-gray-400 text-sm">
               Desenvolvido por Matheus Henrique Nunes
             </footer>
           </div>
