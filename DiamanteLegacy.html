@@ -39,42 +39,58 @@
       font-weight: bold;
       box-shadow: 0 0 8px #ffd700;
     }
-    .icon-button {
+    .action-button {
       background: linear-gradient(45deg, #00f7ff, #007bff);
-      padding: 10px;
-      border-radius: 50%;
+      padding: 10px 20px;
+      border-radius: 20px;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
-      width: 48px;
-      height: 48px;
+      min-width: 48px;
+      min-height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
+      font-weight: bold;
     }
-    .icon-button:hover, .icon-button:focus {
-      transform: scale(1.2);
+    .action-button:hover, .action-button:focus {
+      transform: scale(1.1);
       box-shadow: 0 0 15px rgba(0, 247, 255, 0.7);
     }
-    .icon-button:active {
+    .action-button:active {
       transform: scale(0.95);
     }
-    .tooltip {
-      visibility: hidden;
-      background: #2c2c2c;
-      color: #fff;
-      text-align: center;
-      padding: 5px 10px;
-      border-radius: 6px;
+    .like-animation {
       position: absolute;
-      z-index: 10;
-      bottom: 120%;
+      top: -30px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 0.75rem;
-      white-space: nowrap;
+      color: #00f7ff;
+      font-size: 24px;
+      animation: likePop 1s ease-out forwards;
     }
-    .icon-button:hover .tooltip, .icon-button:focus .tooltip {
-      visibility: visible;
+    .particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #00f7ff;
+      border-radius: 50%;
+      animation: particleBurst 0.5s ease-out forwards;
+    }
+    @keyframes likePop {
+      0% { transform: translateX(-50%) scale(1); opacity: 1; }
+      50% { transform: translateX(-50%) scale(1.5); opacity: 1; text-shadow: 0 0 10px #00f7ff; }
+      100% { transform: translateX(-50%) translateY(-50px) scale(1); opacity: 0; }
+    }
+    @keyframes particleBurst {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+    .like-count {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+    .like-count.animate {
+      transform: translateY(-10px);
     }
     .comment-enter {
       opacity: 0;
@@ -138,6 +154,10 @@
       background: #ff4444;
       color: white;
       text-align: center;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .video-fallback {
       background: #2c2c2c;
@@ -150,9 +170,6 @@
     @media (max-width: 640px) {
       .header-logo {
         height: 2.5rem;
-      }
-      .video-title {
-        font-size: 1.25rem;
       }
       .action-buttons {
         flex-direction: column;
@@ -187,12 +204,17 @@
       static getDerivedStateFromError(error) {
         return { hasError: true, error };
       }
+      componentDidCatch(error, errorInfo) {
+        console.error("ErrorBoundary caught:", error, errorInfo);
+      }
       render() {
         if (this.state.hasError) {
           return (
             <div className="error-boundary">
-              <h1>Algo deu errado: {this.state.error?.message}</h1>
-              <p>Por favor, recarregue a página ou contate o suporte.</p>
+              <h1>Erro ao carregar o site</h1>
+              <p>Algo deu errado: {this.state.error?.message || "Erro desconhecido"}</p>
+              <p>Tente recarregar a página ou usar um servidor local (ex.: python -m http.server 8000).</p>
+              <p>Verifique o Console (F12) para mais detalhes.</p>
             </div>
           );
         }
@@ -201,6 +223,9 @@
     }
 
     function Header() {
+      React.useEffect(() => {
+        console.log("Header rendered");
+      }, []);
       return (
         <header className="bg-gray-900 p-4 flex justify-center shadow-lg">
           <img
@@ -216,21 +241,25 @@
       const [videoError, setVideoError] = React.useState(false);
 
       const handleVideoError = () => {
+        console.error("Video iframe failed to load");
         setVideoError(true);
       };
 
+      React.useEffect(() => {
+        console.log("VideoPlayer rendered");
+      }, []);
+
       return (
         <div className="mx-auto max-w-5xl mt-8 px-4 sm:px-2">
-          <h2 className="video-title text-2xl sm:text-xl font-semibold neon-blue mb-4">NOVA ATUALIZAÇÃO DIAMANTE LEGACY! - CASSINO (+18)</h2>
           {videoError ? (
             <div className="video-fallback">
               <p>Vídeo não carregou. Tente recarregar a página ou usar um servidor local (ex.: python -m http.server 8000).</p>
-              <p>Se o problema persistir, verifique a conexão ou contate o suporte.</p>
+              <p>Verifique o Console (F12) para mais detalhes.</p>
             </div>
           ) : (
             <div className="video-container">
               <iframe
-                src="https://player.vimeo.com/video/1077787708?h=907138132e&badge=0&autopause=0&player_id=0&app_id=58479"
+                src="https://player.vimeo.com/video/1077787708?h=907138132e&badge=0&autopause=0&player_id=0&app_id=58479&autoplay=1"
                 frameBorder="0"
                 allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
@@ -243,12 +272,14 @@
       );
     }
 
-    function VideoActions({ onCommentClick }) {
+    function VideoActions() {
       const [likes, setLikes] = React.useState(() => {
         const savedLikes = localStorage.getItem('likes');
         return savedLikes ? parseInt(savedLikes, 10) : 131;
       });
-      const [isFullscreen, setIsFullscreen] = React.useState(false);
+      const [showLikeAnimation, setShowLikeAnimation] = React.useState(false);
+      const [particles, setParticles] = React.useState([]);
+      const [animateCount, setAnimateCount] = React.useState(false);
 
       React.useEffect(() => {
         const interval = setInterval(() => {
@@ -261,77 +292,55 @@
         return () => clearInterval(interval);
       }, []);
 
+      React.useEffect(() => {
+        console.log("VideoActions rendered");
+      }, []);
+
       const handleLikeClick = () => {
         setLikes(prevLikes => {
           const newLikes = prevLikes + 1;
           localStorage.setItem('likes', newLikes);
           return newLikes;
         });
-      };
-
-      const handleFullscreenToggle = () => {
-        const videoContainer = document.querySelector('.video-container');
-        if (!isFullscreen) {
-          if (videoContainer.requestFullscreen) {
-            videoContainer.requestFullscreen();
-          } else if (videoContainer.webkitRequestFullscreen) {
-            videoContainer.webkitRequestFullscreen();
-          } else if (videoContainer.msRequestFullscreen) {
-            videoContainer.msRequestFullscreen();
-          }
-        } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-          } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-          }
-        }
-        setIsFullscreen(!isFullscreen);
+        setShowLikeAnimation(true);
+        setAnimateCount(true);
+        const newParticles = Array.from({ length: 8 }, (_, i) => ({
+          id: i,
+          style: {
+            top: `${Math.random() * 20 - 10}px`,
+            left: `${Math.random() * 20 - 10}px`,
+            transform: `translate(${Math.random() * 50 - 25}px, ${Math.random() * 50 - 25}px)`,
+          },
+        }));
+        setParticles(newParticles);
+        setTimeout(() => {
+          setShowLikeAnimation(false);
+          setParticles([]);
+        }, 1000);
+        setTimeout(() => setAnimateCount(false), 300);
       };
 
       return (
         <div className="action-buttons flex sm:flex-col items-center justify-center space-x-4 sm:space-x-0 sm:space-y-3 mt-6 max-w-5xl mx-auto px-4 sm:px-2">
           <button
             onClick={handleLikeClick}
-            className="icon-button relative"
+            className="action-button relative text-gray-900"
             aria-label="Curtir"
           >
-            <i className="fas fa-thumbs-up text-lg"></i>
-            <span className="ml-2 sm:ml-0 text-sm">{likes}</span>
-            <span className="tooltip">Curtir</span>
-          </button>
-          <button
-            className="icon-button relative"
-            aria-label="Não Curtir"
-          >
-            <i className="fas fa-thumbs-down text-lg"></i>
-            <span className="ml-2 sm:ml-0 text-sm">12</span>
-            <span className="tooltip">Não Curtir</span>
-          </button
-          <button
-            className="icon-button relative"
-            aria-label="Compartilhar"
-          >
-            <i className="fas fa-share text-lg"></i>
-            <span className="tooltip">Compartilhar</span>
-          </button>
-          <button
-            onClick={handleFullscreenToggle}
-            className="icon-button relative"
-            aria-label={isFullscreen ? "Sair do Modo Tela Cheia" : "Entrar no Modo Tela Cheia"}
-          >
-            <i className={isFullscreen ? "fas fa-compress" : "fas fa-expand"}></i>
-            <span className="tooltip">{isFullscreen ? "Sair Tela Cheia" : "Tela Cheia"}</span>
-          </button>
-          <button
-            onClick={onCommentClick}
-            className="icon-button relative"
-            aria-label="Comentar"
-          >
-            <i className="fas fa-comment text-lg"></i>
-            <span className="tooltip">Comentar</span>
+            <i className="fas fa-thumbs-up mr-2"></i>
+            Curtir (<span className={`like-count ${animateCount ? 'animate' : ''}`}>{likes}</span>)
+            {showLikeAnimation && (
+              <>
+                <i className="fas fa-thumbs-up like-animation"></i>
+                {particles.map(particle => (
+                  <div
+                    key={particle.id}
+                    className="particle"
+                    style={particle.style}
+                  ></div>
+                ))}
+              </>
+            )}
           </button>
         </div>
       );
@@ -346,6 +355,10 @@
         "https://i.pinimg.com/originals/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg",
         "https://imgsrv2.voi.id/WjEqMKzrXoQQvMyNmpfJrb69U5WO2jgd1eqrHg-lOyA/auto/1200/675/sm/1/bG9jYWw6Ly8vcHVibGlzaGVycy8zNDMxMTEvMjAyMzEyMjkxMzI1LW1haW4uY3JvcHBlZF8xNzAzODM0OTI5LmpwZWc.jpg",
       ];
+
+      React.useEffect(() => {
+        console.log("CommentFormModal rendered, isOpen:", isOpen);
+      }, [isOpen]);
 
       const handleSubmit = (e) => {
         e.preventDefault();
@@ -417,7 +430,7 @@
       );
     }
 
-    function Comments({ openCommentModal }) {
+    function Comments() {
       const [comments, setComments] = React.useState([
         { id: 1, user: "João Silva", avatar: "https://i.pravatar.cc/40?img=1", text: "Vídeo incrível, continue assim!", timestamp: "2 horas atrás", replies: [], isVip: true },
         { id: 2, user: "Maria Oliveira", avatar: "https://i.pravatar.cc/40?img=2", text: "Adorei o conteúdo, muito bem feito!", timestamp: "1 hora atrás", replies: [], isVip: false },
@@ -443,6 +456,10 @@
       const [showCommentModal, setShowCommentModal] = React.useState(false);
       const [replyText, setReplyText] = React.useState({});
       const [showReply, setShowReply] = React.useState({});
+
+      React.useEffect(() => {
+        console.log("Comments rendered");
+      }, []);
 
       const handleCommentSubmit = ({ name, avatar, comment }) => {
         setComments([
@@ -490,17 +507,12 @@
         setShowReply({ ...showReply, [commentId]: !showReply[commentId] });
       };
 
-      const openModal = () => {
-        setShowCommentModal(true);
-        if (onCommentClick) onCommentClick();
-      };
-
       return (
         <div className="comment-section max-w-5xl mx-auto mt-12 px-4 sm:px-2">
           <h2 className="text-2xl sm:text-xl font-semibold neon-blue mb-6">Comentários</h2>
           <div className="mb-8">
             <button
-              onClick={openModal}
+              onClick={() => setShowCommentModal(true)}
               className="w-full p-4 bg-gray-800 text-white rounded-lg neon-border text-left text-sm"
             >
               Adicione um comentário...
@@ -589,6 +601,9 @@
     }
 
     function Feedback() {
+      React.useEffect(() => {
+        console.log("Feedback rendered");
+      }, []);
       return (
         <div className="feedback-section max-w-5xl mx-auto mt-12 mb-12 px-4 sm:px-2">
           <h2 className="text-2xl sm:text-xl font-semibold neon-blue mb-6">Feedback</h2>
@@ -605,11 +620,9 @@
     }
 
     function App() {
-      const [showCommentModal, setShowCommentModal] = React.useState(false);
-
-      const handleCommentClick = () => {
-        setShowCommentModal(true);
-      };
+      React.useEffect(() => {
+        console.log("App rendered");
+      }, []);
 
       return (
         <ErrorBoundary>
@@ -617,8 +630,8 @@
             <Header />
             <main className="p-6 sm:p-4">
               <VideoPlayer />
-              <VideoActions onCommentClick={handleCommentClick} />
-              <Comments openCommentModal={() => setShowCommentModal(true)} />
+              <VideoActions />
+              <Comments />
               <Feedback />
             </main>
             <footer className="bg-gray-900 p-4 text-center text-gray-400 text-sm">
@@ -629,7 +642,20 @@
       );
     }
 
-    ReactDOM.render(<App />, document.getElementById('root'));
+    // Fallback for script loading issues
+    try {
+      ReactDOM.render(<App />, document.getElementById('root'));
+      console.log("ReactDOM.render executed");
+    } catch (error) {
+      console.error("Failed to render App:", error);
+      document.getElementById('root').innerHTML = `
+        <div style="padding: 20px; background: #ff4444; color: white; text-align: center; min-height: 100vh;">
+          <h1>Erro ao carregar o site</h1>
+          <p>Não foi possível carregar a página. Tente recarregar ou usar um servidor local (ex.: python -m http.server 8000).</p>
+          <p>Verifique o Console (F12) para mais detalhes.</p>
+        </div>
+      `;
+    }
   </script>
 </body>
 </html>
