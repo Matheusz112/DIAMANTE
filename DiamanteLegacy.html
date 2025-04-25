@@ -1,1 +1,564 @@
-<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1077787708?h=907138132e&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="� NOVA ATUALIZAÇÃO DIAMANTE LEGACY!  - CASSIN0  (+18)"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma de Vídeos</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://player.vimeo.com/api/player.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overscroll-behavior: none;
+    }
+    .neon-blue {
+      color: #00ddeb;
+      text-shadow: 0 0 5px #00ddeb, 0 0 10px #00ddeb;
+    }
+    .neon-gold {
+      color: #facc15;
+      text-shadow: 0 0 5px #facc15, 0 0 10px #facc15;
+    }
+    .neon-border {
+      border: 1px solid #00ddeb;
+      box-shadow: 0 0 8px #00ddeb;
+    }
+    .vip-badge {
+      background: linear-gradient(45deg, #facc15, #f59e0b);
+      color: #1a1a1a;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.65rem;
+      font-weight: bold;
+      box-shadow: 0 0 6px #facc15;
+    }
+    .icon-hover {
+      transition: transform 0.3s ease, color 0.3s ease;
+    }
+    .icon-hover:hover {
+      transform: scale(1.15);
+      color: #00ddeb;
+    }
+    .like-button:active {
+      transform: scale(0.95);
+    }
+    .comment-enter {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    .comment-enter-active {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 221, 235, 0.2);
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+    }
+    .action-button {
+      background: linear-gradient(45deg, #00ddeb, #3b82f6);
+      padding: 10px 20px;
+      border-radius: 9999px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      touch-action: manipulation;
+    }
+    .action-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 221, 235, 0.5);
+    }
+    .modal {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      overscroll-behavior: contain;
+    }
+    .modal-content {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 16px;
+      max-width: 90%;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 0 20px rgba(0, 221, 235, 0.3);
+    }
+    .avatar-option {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .avatar-option:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 10px #00ddeb;
+    }
+    .avatar-selected {
+      border: 2px solid #00ddeb;
+      box-shadow: 0 0 12px #00ddeb;
+    }
+    .error-boundary {
+      padding: 16px;
+      background: #ef4444;
+      color: white;
+      text-align: center;
+      border-radius: 12px;
+    }
+    .video-fallback {
+      background: #1e1e1e;
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+      color: #ef4444;
+      font-weight: 600;
+    }
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .comment-section {
+      max-height: 60vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #00ddeb #1e1e1e;
+    }
+    .comment-section::-webkit-scrollbar {
+      width: 6px;
+    }
+    .comment-section::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+    .comment-section::-webkit-scrollbar-thumb {
+      background: #00ddeb;
+      border-radius: 9999px;
+    }
+    @media (min-width: 640px) {
+      .modal-content {
+        max-width: 500px;
+      }
+      .video-container {
+        padding-bottom: 50%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    // Error Boundary to catch rendering issues
+    class ErrorBoundary extends React.Component {
+      state = { hasError: false, error: null };
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="error-boundary mx-4 my-6">
+              <h1 className="text-lg font-semibold">Algo deu errado: {this.state.error?.message}</h1>
+              <p className="mt-2">Por favor, recarregue a página ou contate o suporte.</p>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    function Header() {
+      return (
+        <header className="bg-gray-900 p-4 flex items-center justify-center shadow-lg sticky-header">
+          <img
+            src="https://i.postimg.cc/7ZTMyp55/Futura-Display-3-1.jpg"
+            alt="Logo"
+            className="h-12 rounded"
+            loading="lazy"
+          />
+        </header>
+      );
+    }
+
+    function VideoPlayer() {
+      const [videoError, setVideoError] = React.useState(false);
+
+      const handleVideoError = () => {
+        setVideoError(true);
+      };
+
+      return (
+        <div className="mx-4 sm:mx-auto max-w-5xl mt-6">
+          <h2 className="text-xl sm:text-2xl font-semibold neon-blue mb-4 leading-tight">
+            NOVA ATUALIZAÇÃO DIAMANTE LEGACY! - CASSINO (+18)
+          </h2>
+          {videoError ? (
+            <div className="video-fallback">
+              <p>Vídeo não carregou. Tente recarregar a página.</p>
+              <p>Se o problema persistir, verifique a conexão ou contate o suporte.</p>
+            </div>
+          ) : (
+            <div className="video-container">
+              <iframe
+                src="https://player.vimeo.com/video/1077787708?h=907138132e&badge=0&autopause=0&player_id=0&app_id=58479"
+                frameBorder="0"
+                allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+                title="NOVA ATUALIZAÇÃO DIAMANTE LEGACY! - CASSINO (+18)"
+                onError={handleVideoError}
+              ></iframe>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function VideoActions() {
+      const [likes, setLikes] = React.useState(() => {
+        const savedLikes = localStorage.getItem('likes');
+        return savedLikes ? parseInt(savedLikes, 10) : 131;
+      });
+
+      React.useEffect(() => {
+        const interval = setInterval(() => {
+          setLikes(prevLikes => {
+            const newLikes = prevLikes + 1;
+            localStorage.setItem('likes', newLikes);
+            return newLikes;
+          });
+        }, 20000);
+        return () => clearInterval(interval);
+      }, []);
+
+      const handleLikeClick = () => {
+        setLikes(prevLikes => {
+          const newLikes = prevLikes + 1;
+          localStorage.setItem('likes', newLikes);
+          return newLikes;
+        });
+      };
+
+      return (
+        <div className="flex flex-wrap items-center gap-4 mt-4 mx-4 sm:mx-auto max-w-5xl">
+          <button
+            onClick={handleLikeClick}
+            className="action-button flex items-center text-gray-900 font-semibold like-button text-sm px-4 py-2"
+          >
+            <i className="fas fa-thumbs-up icon-hover mr-2"></i> Curtir ({likes})
+          </button>
+          <button className="action-button flex items-center text-gray-900 font-semibold text-sm px-4 py-2">
+            <i className="fas fa-thumbs-down icon-hover mr-2"></i> Não Curtir (12)
+          </button>
+          <button className="action-button flex items-center text-gray-900 font-semibold text-sm px-4 py-2">
+            <i className="fas fa-share icon-hover mr-2"></i> Compartilhar
+          </button>
+        </div>
+      );
+    }
+
+    function CommentFormModal({ isOpen, onClose, onSubmit }) {
+      const [name, setName] = React.useState("");
+      const [avatar, setAvatar] = React.useState("");
+      const [comment, setComment] = React.useState("");
+      const avatars = [
+        "https://wallpapers.com/images/hd/cute-avatar-profile-picture-23yuqpb8wz1dqqqv.jpg",
+        "https://i.pinimg.com/originals/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg",
+        "https://imgsrv2.voi.id/WjEqMKzrXoQQvMyNmpfJrb69U5WO2jgd1eqrHg-lOyA/auto/1200/675/sm/1/bG9jYWw6Ly8vcHVibGlzaGVycy8zNDMxMTEvMjAyMzEyMjkxMzI1LW1haW4uY3JvcHBlZF8xNzAzODM0OTI5LmpwZWc.jpg",
+      ];
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (name.trim() && comment.trim() && avatar) {
+          onSubmit({ name, avatar, comment });
+          setName("");
+          setAvatar("");
+          setComment("");
+          onClose();
+        }
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="modal">
+          <div className="modal-content">
+            <h2 className="text-lg sm:text-xl neon-blue mb-4">Adicionar Comentário</h2>
+            <div className="mb-4">
+              <label className="block text-xs sm:text-sm mb-1">Seu Nome</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Digite seu nome"
+                className="w-full p-2 bg-gray-800 text-white rounded neon-border text-sm focus:outline-none"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs sm:text-sm mb-1">Escolha um Avatar</label>
+              <div className="flex gap-2">
+                {avatars.map((img) => (
+                  <img
+                    key={img}
+                    src={img}
+                    alt="Avatar"
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full cursor-pointer avatar-option ${avatar === img ? 'avatar-selected' : ''}`}
+                    onClick={() => setAvatar(img)}
+                    loading="lazy"
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs sm:text-sm mb-1">Comentário</label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Escreva seu comentário..."
+                className="w-full p-2 bg-gray-800 text-white rounded neon-blue text-sm focus:outline-none"
+                rows="4"
+              ></textarea>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 action-button text-gray-900 font-semibold rounded-full text-sm"
+              >
+                Publicar
+              </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-sm"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Comments() {
+      const [comments, setComments] = React.useState([
+        { id: 1, user: "João Silva", avatar: "https://i.pravatar.cc/40?img=1", text: "Vídeo incrível, continue assim!", timestamp: "2h", replies: [], isVip: true },
+        { id: 2, user: "Maria Oliveira", avatar: "https://i.pravatar.cc/40?img=2", text: "Adorei o conteúdo, muito bem feito!", timestamp: "1h", replies: [], isVip: false },
+        { id: 3, user: "Pedro Santos", avatar: "https://i.pravatar.cc/40?img=3", text: "Que edição top!", timestamp: "3h", replies: [], isVip: false },
+      ]);
+      const [showCommentModal, setShowCommentModal] = React.useState(false);
+      const [replyText, setReplyText] = React.useState({});
+      const [showReply, setShowReply] = React.useState({});
+      const [showAllComments, setShowAllComments] = React.useState(false);
+
+      const handleCommentSubmit = ({ name, avatar, comment }) => {
+        setComments([
+          {
+            id: comments.length + 1,
+            user: name,
+            avatar,
+            text: comment,
+            timestamp: "Agora",
+            replies: [],
+            isVip: false,
+          },
+          ...comments,
+        ]);
+      };
+
+      const handleReplySubmit = (commentId, e) => {
+        e.preventDefault();
+        if (replyText[commentId]?.trim()) {
+          const updatedComments = comments.map(comment => {
+            if (comment.id === commentId) {
+              return {
+                ...comment,
+                replies: [
+                  ...comment.replies,
+                  {
+                    id: comment.replies.length + 1,
+                    user: "Você",
+                    text: replyText[commentId],
+                    timestamp: "Agora",
+                    avatar: comment.avatar,
+                  },
+                ],
+              };
+            }
+            return comment;
+          });
+          setComments(updatedComments);
+          setReplyText({ ...replyText, [commentId]: "" });
+          setShowReply({ ...showReply, [commentId]: false });
+        }
+      };
+
+      const toggleReply = (commentId) => {
+        setShowReply({ ...showReply, [commentId]: !showReply[commentId] });
+      };
+
+      const displayedComments = showAllComments ? comments : comments.slice(0, 3);
+
+      return (
+        <div className="mx-4 sm:mx-auto max-w-5xl mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-semibold neon-blue">Comentários</h2>
+            {comments.length > 3 && (
+              <button
+                onClick={() => setShowAllComments(!showAllComments)}
+                className="text-sm text-neon-blue hover:underline"
+              >
+                {showAllComments ? "Ver menos" : `Ver todos (${comments.length})`}
+              </button>
+            )}
+          </div>
+          <div className="mb-6">
+            <button
+              onClick={() => setShowCommentModal(true)}
+              className="w-full p-3 bg-gray-800 text-white rounded-lg neon-border text-left text-sm"
+            >
+              Adicione um comentário...
+            </button>
+            <CommentFormModal
+              isOpen={showCommentModal}
+              onClose={() => setShowCommentModal(false)}
+              onSubmit={handleCommentSubmit}
+            />
+          </div>
+          <div className="comment-section">
+            {displayedComments.map((comment) => (
+              <div
+                key={comment.id}
+                className="mb-4 p-4 bg-gray-800 rounded-lg neon-border comment-enter comment-enter-active"
+              >
+                <div className="flex items-start gap-3">
+                  <img
+                    src={comment.avatar}
+                    alt={comment.user}
+                    className="w-8 h-8 rounded-full border-2 border-neon-blue"
+                    loading="lazy"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold neon-blue text-sm">{comment.user}</p>
+                      {comment.isVip && <span className="vip-badge">VIP</span>}
+                      <span className="text-gray-400 text-xs">{comment.timestamp}</span>
+                    </div>
+                    <p className="mt-1 text-gray-200 text-sm">{comment.text}</p>
+                    <button
+                      onClick={() => toggleReply(comment.id)}
+                      className="mt-1 text-xs text-neon-blue hover:underline"
+                    >
+                      Responder
+                    </button>
+                    {showReply[comment.id] && (
+                      <div className="mt-3">
+                        <textarea
+                          value={replyText[comment.id] || ""}
+                          onChange={(e) => setReplyText({ ...replyText, [comment.id]: e.target.value })}
+                          placeholder="Escreva sua resposta..."
+                          className="w-full p-2 bg-gray-900 text-white rounded-lg neon-border text-sm focus:outline-none"
+                          rows="2"
+                        ></textarea>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={(e) => handleReplySubmit(comment.id, e)}
+                            className="px-3 py-1 action-button text-gray-900 font-semibold rounded-full text-xs"
+                          >
+                            Enviar
+                          </button>
+                          <button
+                            onClick={() => toggleReply(comment.id)}
+                            className="px-3 py-1 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-xs"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {comment.replies.length > 0 && (
+                      <div className="mt-3 ml-6">
+                        {comment.replies.map((reply) => (
+                          <div key={reply.id} className="flex items-start gap-2 mt-2">
+                            <img
+                              src={reply.avatar}
+                              alt={reply.user}
+                              className="w-6 h-6 rounded-full border-2 border-neon-blue"
+                              loading="lazy"
+                            />
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <p className="font-semibold neon-blue text-xs">{reply.user}</p>
+                                <span className="text-gray-400 text-xs">{reply.timestamp}</span>
+                              </div>
+                              <p className="text-gray-200 text-xs">{reply.text}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function Feedback() {
+      return (
+        <div className="mx-4 sm:mx-auto max-w-5xl mt-8 mb-12">
+          <h2 className="text-xl sm:text-2xl font-semibold neon-blue mb-4">Feedback</h2>
+          <textarea
+            placeholder="Envie seu feedback sobre o vídeo..."
+            className="w-full p-3 bg-gray-800 text-white rounded-lg neon-border text-sm focus:outline-none"
+            rows="4"
+          ></textarea>
+          <button className="mt-3 px-5 py-2 action-button text-gray-900 font-semibold rounded-full text-sm">
+            Enviar
+          </button>
+        </div>
+      );
+    }
+
+    function App() {
+      return (
+        <ErrorBoundary>
+          <div className="min-h-screen">
+            <Header />
+            <main className="pb-6">
+              <VideoPlayer />
+              <VideoActions />
+              <Comments />
+              <Feedback />
+            </main>
+            <footer className="bg-gray-900 p-4 text-center text-gray-400 text-sm">
+              Desenvolvido por Matheus Henrique Nunes
+            </footer>
+          </div>
+        </ErrorBoundary>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
