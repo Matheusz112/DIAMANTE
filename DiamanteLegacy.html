@@ -110,16 +110,22 @@
       overflow-y: auto;
       box-shadow: 0 0 20px rgba(0, 221, 235, 0.3);
     }
-    .avatar-option {
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    .avatar-modal-content {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 16px;
+      max-width: 300px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0, 221, 235, 0.3);
     }
-    .avatar-option:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 10px #00ddeb;
-    }
-    .avatar-selected {
-      border: 2px solid #00ddeb;
-      box-shadow: 0 0 12px #00ddeb;
+    .reply-name-modal-content {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 16px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 0 20px rgba(0, 221, 235, 0.3);
     }
     .error-boundary {
       padding: 16px;
@@ -192,6 +198,12 @@
       .modal-content {
         max-width: 500px;
       }
+      .avatar-modal-content {
+        max-width: 400px;
+      }
+      .reply-name-modal-content {
+        max-width: 400px;
+      }
       .video-container {
         padding-bottom: 50%;
       }
@@ -220,6 +232,9 @@
       }
     }
 
+    // Context to share comments loading state
+    const CommentsLoadingContext = React.createContext({ loading: true });
+
     function Header() {
       return (
         <header className="bg-gray-900 p-4 flex items-center justify-center shadow-lg sticky-header">
@@ -234,7 +249,33 @@
     }
 
     function VideoPlayer() {
+      const { loading } = React.useContext(CommentsLoadingContext);
       const [videoError, setVideoError] = React.useState(false);
+      const playerRef = React.useRef(null);
+      const hasPlayedRef = React.useRef(false);
+
+      React.useEffect(() => {
+        if (!playerRef.current) {
+          playerRef.current = new Vimeo.Player(document.getElementById('vimeo-player'));
+        }
+
+        return () => {
+          if (playerRef.current) {
+            playerRef.current.destroy().catch(() => {});
+          }
+        };
+      }, []);
+
+      React.useEffect(() => {
+        if (!loading && !videoError && playerRef.current && !hasPlayedRef.current) {
+          playerRef.current.play().then(() => {
+            hasPlayedRef.current = true;
+          }).catch(err => {
+            console.error("Erro ao iniciar vídeo:", err);
+            setVideoError(true);
+          });
+        }
+      }, [loading, videoError]);
 
       const handleVideoError = () => {
         setVideoError(true);
@@ -253,6 +294,7 @@
           ) : (
             <div className="video-container">
               <iframe
+                id="vimeo-player"
                 src="https://player.vimeo.com/video/1077787708?h=907138132e&badge=0&autopause=0&player_id=0&app_id=58479"
                 frameBorder="0"
                 allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
@@ -272,9 +314,8 @@
       });
       const [showCopyMessage, setShowCopyMessage] = React.useState(false);
 
-      // Function to get random interval between 60s and 90s
       const getRandomInterval = () => {
-        return Math.floor(Math.random() * (90000 - 60000 + 1)) + 60000; // Random between 60000ms and 90000ms
+        return Math.floor(Math.random() * (90000 - 60000 + 1)) + 60000;
       };
 
       React.useEffect(() => {
@@ -290,14 +331,14 @@
           const intervalTime = getRandomInterval();
           const timeoutId = setTimeout(() => {
             incrementLikes();
-            setNewInterval(); // Set a new interval after increment
+            setNewInterval();
           }, intervalTime);
           return timeoutId;
         };
 
         const timeoutId = setNewInterval();
 
-        return () => clearTimeout(timeoutId); // Cleanup on unmount
+        return () => clearTimeout(timeoutId);
       }, []);
 
       const handleLikeClick = () => {
@@ -313,7 +354,7 @@
         try {
           await navigator.clipboard.writeText(shareLink);
           setShowCopyMessage(true);
-          setTimeout(() => setShowCopyMessage(false), 3000); // Hide message after 3 seconds
+          setTimeout(() => setShowCopyMessage(false), 3000);
         } catch (err) {
           console.error("Erro ao copiar o link:", err);
         }
@@ -327,9 +368,6 @@
               className="action-button flex items-center text-gray-900 font-semibold like-button text-sm px-4 py-2"
             >
               <i className="fas fa-thumbs-up icon-hover mr-2"></i> Curtir ({likes})
-            </button>
-            <button className="action-button flex items-center text-gray-900 font-semibold text-sm px-4 py-2">
-              <i className="fas fa-thumbs-down icon-hover mr-2"></i> Não Curtir (12)
             </button>
             <button
               onClick={handleShareClick}
@@ -351,20 +389,44 @@
       const [name, setName] = React.useState("");
       const [avatar, setAvatar] = React.useState("");
       const [comment, setComment] = React.useState("");
-      const avatars = [
-        "https://wallpapers.com/images/hd/cute-avatar-profile-picture-23yuqpb8wz1dqqqv.jpg",
-        "https://i.pinimg.com/originals/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg",
-        "https://imgsrv2.voi.id/WjEqMKzrXoQQvMyNmpfJrb69U5WO2jgd1eqrHg-lOyA/auto/1200/675/sm/1/bG9jYWw6Ly8vcHVibGlzaGVycy8zNDMxMTEvMjAyMzEyMjkxMzI1LW1haW4uY3JvcHBlZF8xNzAzODM0OTI5LmpwZWc.jpg",
-      ];
+      const defaultAvatar = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQZtQA4JfLqtrchyYX_1f37ID3d8ciwqW99Q&s";
 
-      const handleSubmit = (e) => {
+      const handleSubmit = async (e) => {
         e.preventDefault();
-        if (name.trim() && comment.trim() && avatar) {
-          onSubmit({ name, avatar, comment });
-          setName("");
-          setAvatar("");
-          setComment("");
-          onClose();
+        if (name.trim() && comment.trim()) {
+          try {
+            const response = await axios({
+              method: "POST",
+              url: "https://api.baserow.io/api/database/rows/table/516801/?user_field_names=true",
+              headers: {
+                Authorization: "Token Zpp1pMg1AYeG0lnXC1De0hIZID19BUM6",
+                "Content-Type": "application/json"
+              },
+              data: {
+                Name: name,
+                MembroVip: false,
+                Comentarios: comment,
+                RespostasAosComentarios: "",
+                Datahora: new Date().toISOString(),
+                Avatar: avatar.trim() || ""
+              }
+            });
+            onSubmit({
+              name,
+              avatar: response.data.Avatar || defaultAvatar,
+              comment,
+              id: response.data.id,
+              timestamp: response.data.Datahora,
+              isVip: response.data.MembroVip
+            });
+            setName("");
+            setAvatar("");
+            setComment("");
+            onClose();
+          } catch (err) {
+            console.error("Erro ao enviar comentário:", err);
+            alert("Não foi possível enviar o comentário. Tente novamente.");
+          }
         }
       };
 
@@ -385,19 +447,15 @@
               />
             </div>
             <div className="mb-4">
-              <label className="block text-xs sm:text-sm mb-1">Escolha um Avatar</label>
-              <div className="flex gap-2">
-                {avatars.map((img) => (
-                  <img
-                    key={img}
-                    src={img}
-                    alt="Avatar"
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full cursor-pointer avatar-option ${avatar === img ? 'avatar-selected' : ''}`}
-                    onClick={() => setAvatar(img)}
-                    loading="lazy"
-                  />
-                ))}
-              </div>
+              <label className="block text-xs sm:text-sm mb-1">Link do Avatar (opcional)</label>
+              <input
+                type="text"
+                value={avatar}
+                onChange={(e) => setAvatar(e.target.value)}
+                placeholder="Cole o link do avatar ou deixe vazio para o padrão"
+                className="w-full p-2 bg-gray-800 text-white rounded neon-border text-sm focus:outline-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">Se vazio, usaremos um avatar padrão.</p>
             </div>
             <div className="mb-4">
               <label className="block text-xs sm:text-sm mb-1">Comentário</label>
@@ -428,6 +486,110 @@
       );
     }
 
+    function AvatarModal({ isOpen, onClose, avatar }) {
+      if (!isOpen) return null;
+
+      return (
+        <div className="modal">
+          <div className="avatar-modal-content">
+            <img
+              src={avatar}
+              alt="Avatar Ampliado"
+              className="w-40 h-40 sm:w-52 sm:h-52 rounded-full mx-auto mb-4 border-2 border-neon-blue"
+              loading="lazy"
+            />
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-sm"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function UserInfoModal({ isOpen, onClose, user, isVip }) {
+      if (!isOpen) return null;
+
+      return (
+        <div className="modal">
+          <div className="modal-content max-w-xs">
+            <h2 className="text-lg sm:text-xl neon-blue mb-4">Informações do Usuário</h2>
+            <p className="text-sm mb-2"><span className="font-semibold">Nome:</span> {user}</p>
+            <p className="text-sm mb-4">
+              <span className="font-semibold">Status:</span> {isVip ? "Membro VIP" : "Membro Comum"}
+            </p>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-sm w-full"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function ReplyNameModal({ isOpen, onClose, onContinue, commentId }) {
+      const [replyName, setReplyName] = React.useState("");
+      const [replyAvatar, setReplyAvatar] = React.useState("");
+      const defaultAvatar = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQZtQA4JfLqtrchyYX_1f37ID3d8ciwqW99Q&s";
+
+      const handleContinue = () => {
+        onContinue(commentId, replyName.trim() || "Anônimo", replyAvatar.trim() || defaultAvatar);
+        setReplyName("");
+        setReplyAvatar("");
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="modal">
+          <div className="reply-name-modal-content">
+            <h2 className="text-lg sm:text-xl neon-blue mb-4">Responder Comentário</h2>
+            <div className="mb-4">
+              <label className="block text-xs sm:text-sm mb-1">Seu Nome (opcional)</label>
+              <input
+                type="text"
+                value={replyName}
+                onChange={(e) => setReplyName(e.target.value)}
+                placeholder="Digite seu nome ou deixe vazio para anônimo"
+                className="w-full p-2 bg-gray-800 text-white rounded neon-border text-sm focus:outline-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">Se vazio, a resposta será publicada como 'Anônimo'.</p>
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs sm:text-sm mb-1">Link do Avatar (opcional)</label>
+              <input
+                type="text"
+                value={replyAvatar}
+                onChange={(e) => setReplyAvatar(e.target.value)}
+                placeholder="Cole o link do avatar ou deixe vazio para o padrão"
+                className="w-full p-2 bg-gray-800 text-white rounded neon-border text-sm focus:outline-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">Se vazio, usaremos um avatar padrão.</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleContinue}
+                className="px-4 py-2 action-button text-gray-900 font-semibold rounded-full text-sm"
+              >
+                Continuar
+              </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-sm"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function Comments() {
       const [comments, setComments] = React.useState([]);
       const [showCommentModal, setShowCommentModal] = React.useState(false);
@@ -435,8 +597,29 @@
       const [showReply, setShowReply] = React.useState({});
       const [error, setError] = React.useState(null);
       const [loading, setLoading] = React.useState(true);
+      const [showAvatarModal, setShowAvatarModal] = React.useState(false);
+      const [showUserInfoModal, setShowUserInfoModal] = React.useState(false);
+      const [showReplyNameModal, setShowReplyNameModal] = React.useState(false);
+      const [selectedCommentId, setSelectedCommentId] = React.useState(null);
+      const [selectedAvatar, setSelectedAvatar] = React.useState("");
+      const [selectedUser, setSelectedUser] = React.useState({ name: "", isVip: false });
+      const defaultAvatar = "https://encrypted-tbn0.gstatic.com/images?q=tbnn:ANd9GcTQZtQA4JfLqtrchyYX_1f37ID3d8ciwqW99Q&s";
 
-      // Fetch all comments with pagination
+      const formatTimestamp = (isoString) => {
+        try {
+          const date = new Date(isoString);
+          return date.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch {
+          return "Agora";
+        }
+      };
+
       React.useEffect(() => {
         const fetchAllComments = async (url, accumulatedComments = []) => {
           try {
@@ -450,18 +633,22 @@
             const newComments = response.data.results.map(item => ({
               id: item.id,
               user: item.Name || "Usuário Anônimo",
-              avatar: "https://i.pravatar.cc/40?img=" + (item.id % 20 + 1), // Placeholder avatar
+              avatar: item.Avatar || defaultAvatar,
               text: item.Comentarios || "Sem comentário",
-              timestamp: "Agora", // Placeholder, as API doesn't provide timestamp
-              replies: [],
+              timestamp: item.Datahora ? formatTimestamp(item.Datahora) : "Agora",
+              replies: item.RespostasAosComentarios ? [{
+                id: item.id + "-reply",
+                user: "Resposta Anônima",
+                text: item.RespostasAosComentarios,
+                timestamp: item.Datahora ? formatTimestamp(item.Datahora) : "Agora",
+                avatar: item.Avatar || defaultAvatar,
+              }] : [],
               isVip: item.MembroVip || false
             }));
             const allComments = [...accumulatedComments, ...newComments];
             if (response.data.next) {
-              // Fetch next page
               fetchAllComments(response.data.next, allComments);
             } else {
-              // No more pages, set comments
               setComments(allComments);
               setLoading(false);
             }
@@ -475,161 +662,253 @@
         fetchAllComments();
       }, []);
 
-      const handleCommentSubmit = ({ name, avatar, comment }) => {
-        setComments([
-          {
-            id: comments.length + 1,
-            user: name,
-            avatar,
-            text: comment,
-            timestamp: "Agora",
-            replies: [],
-            isVip: false,
-          },
-          ...comments,
-        ]);
-      };
-
-      const handleReplySubmit = (commentId, e) => {
-        e.preventDefault();
-        if (replyText[commentId]?.trim()) {
-          const updatedComments = comments.map(comment => {
-            if (comment.id === commentId) {
-              return {
-                ...comment,
-                replies: [
-                  ...comment.replies,
-                  {
-                    id: comment.replies.length + 1,
-                    user: "Você",
-                    text: replyText[commentId],
-                    timestamp: "Agora",
-                    avatar: comment.avatar,
-                  },
-                ],
-              };
-            }
-            return comment;
-          });
-          setComments(updatedComments);
-          setReplyText({ ...replyText, [commentId]: "" });
-          setShowReply({ ...showReply, [commentId]: false });
-        }
-      };
-
-      const toggleReply = (commentId) => {
-        setShowReply({ ...showReply, [commentId]: !showReply[commentId] });
-      };
-
       return (
-        <div className="mx-4 sm:mx-auto max-w-5xl mt-8">
-          <h2 className="text-xl sm:text-2xl font-semibold neon-blue mb-4">Comentários</h2>
-          <div className="mb-6">
-            <button
-              onClick={() => setShowCommentModal(true)}
-              className="w-full p-3 bg-gray-800 text-white rounded-lg neon-border text-left text-sm"
-            >
-              Adicione um comentário...
-            </button>
-            <CommentFormModal
-              isOpen={showCommentModal}
-              onClose={() => setShowCommentModal(false)}
-              onSubmit={handleCommentSubmit}
-            />
-          </div>
-          {loading ? (
-            <div className="text-center p-4">
-              <div className="loading-spinner"></div>
-              <p className="text-sm text-gray-400 mt-2">Carregando comentários...</p>
+        <CommentsLoadingContext.Provider value={{ loading }}>
+          <div className="mx-4 sm:mx-auto max-w-5xl mt-8">
+            <h2 className="text-xl sm:text-2xl font-semibold neon-blue mb-4">Comentários</h2>
+            <div className="mb-6">
+              <button
+                onClick={() => setShowCommentModal(true)}
+                className="w-full p-3 bg-gray-800 text-white rounded-lg neon-border text-left text-sm"
+              >
+                Adicione um comentário...
+              </button>
+              <CommentFormModal
+                isOpen={showCommentModal}
+                onClose={() => setShowCommentModal(false)}
+                onSubmit={({
+                  name,
+                  avatar,
+                  comment,
+                  id,
+                  timestamp,
+                  isVip
+                }) => {
+                  setComments([{
+                    id,
+                    user: name,
+                    avatar,
+                    text: comment,
+                    timestamp: formatTimestamp(timestamp),
+                    replies: [],
+                    isVip,
+                  },
+                  ...comments,
+                  ]);
+                }}
+              />
+              <AvatarModal
+                isOpen={showAvatarModal}
+                onClose={() => setShowAvatarModal(false)}
+                avatar={selectedAvatar}
+              />
+              <UserInfoModal
+                isOpen={showUserInfoModal}
+                onClose={() => setShowUserInfoModal(false)}
+                user={selectedUser.name}
+                isVip={selectedUser.isVip}
+              />
+              <ReplyNameModal
+                isOpen={showReplyNameModal}
+                onClose={() => setShowReplyNameModal(false)}
+                onContinue={(commentId, replyName, replyAvatar) => {
+                  setReplyText({
+                    ...replyText,
+                    [commentId]: {
+                      user: replyName,
+                      text: "",
+                      avatar: replyAvatar
+                    }
+                  });
+                  setShowReply({
+                    ...showReply,
+                    [commentId]: true
+                  });
+                }}
+                commentId={selectedCommentId}
+              />
             </div>
-          ) : error ? (
-            <div className="text-center text-red-400 text-sm p-4 bg-gray-800 rounded-lg">
-              {error}
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="text-center text-gray-400 text-sm p-4 bg-gray-800 rounded-lg">
-              Nenhum comentário encontrado.
-            </div>
-          ) : (
-            <div className="comment-section">
-              {comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className="mb-4 p-4 bg-gray-800 rounded-lg neon-border comment-enter comment-enter-active"
-                >
-                  <div className="flex items-start gap-3">
-                    <img
-                      src={comment.avatar}
-                      alt={comment.user}
-                      className="w-8 h-8 rounded-full border-2 border-neon-blue"
-                      loading="lazy"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold neon-blue text-sm">{comment.user}</p>
-                        {comment.isVip && <span className="vip-badge">VIP</span>}
-                        <span className="text-gray-400 text-xs">{comment.timestamp}</span>
-                      </div>
-                      <p className="mt-1 text-gray-200 text-sm">{comment.text}</p>
-                      <button
-                        onClick={() => toggleReply(comment.id)}
-                        className="mt-1 text-xs text-neon-blue hover:underline"
+            {
+              loading ? (
+                <div className="text-center p-4">
+                  <div className="loading-spinner"></div>
+                  <p className="text-sm text-gray-400 mt-2">Carregando comentários...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center text-red-400 text-sm p-4 bg-gray-800 rounded-lg">
+                  {error}
+                </div>
+              ) : comments.length === 0 ? (
+                <div className="text-center text-gray-400 text-sm p-4 bg-gray-800 rounded-lg">
+                  Nenhum comentário encontrado.
+                </div>
+              ) : (
+                <div className="comment-section">
+                  {
+                    comments.map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="mb-4 p-4 bg-gray-800 rounded-lg neon-border comment-enter comment-enter-active"
                       >
-                        Responder
-                      </button>
-                      {showReply[comment.id] && (
-                        <div className="mt-3">
-                          <textarea
-                            value={replyText[comment.id] || ""}
-                            onChange={(e) => setReplyText({ ...replyText, [comment.id]: e.target.value })}
-                            placeholder="Escreva sua resposta..."
-                            className="w-full p-2 bg-gray-900 text-white rounded-lg neon-border text-sm focus:outline-none"
-                            rows="2"
-                          ></textarea>
-                          <div className="flex gap-2 mt-2">
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={comment.avatar}
+                            alt={comment.user}
+                            className="w-8 h-8 rounded-full border-2 border-neon-blue cursor-pointer"
+                            onClick={() => {
+                              setSelectedAvatar(comment.avatar);
+                              setShowAvatarModal(true);
+                            }}
+                            loading="lazy"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p
+                                className="font-semibold neon-blue text-sm cursor-pointer hover:underline"
+                                onClick={() => {
+                                  setSelectedUser({
+                                    name: comment.user,
+                                    isVip: comment.isVip
+                                  });
+                                  setShowUserInfoModal(true);
+                                }}
+                              >
+                                {comment.user}
+                              </p>
+                              {comment.isVip && <span className="vip-badge">VIP</span>}
+                              <span className="text-gray-400 text-xs">{comment.timestamp}</span>
+                            </div>
+                            <p className="mt-1 text-gray-200 text-sm">{comment.text}</p>
                             <button
-                              onClick={(e) => handleReplySubmit(comment.id, e)}
-                              className="px-3 py-1 action-button text-gray-900 font-semibold rounded-full text-xs"
+                              onClick={() => {
+                                setSelectedCommentId(comment.id);
+                                setShowReplyNameModal(true);
+                              }}
+                              className="mt-1 text-xs text-neon-blue hover:underline"
                             >
-                              Enviar
+                              Responder
                             </button>
-                            <button
-                              onClick={() => toggleReply(comment.id)}
-                              className="px-3 py-1 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-xs"
-                            >
-                              Cancelar
-                            </button>
+                            {
+                              showReply[comment.id] && (
+                                <div className="mt-3">
+                                  <textarea
+                                    value={replyText[comment.id]?.text || ""}
+                                    onChange={(e) => setReplyText({
+                                      ...replyText,
+                                      [comment.id]: {
+                                        ...replyText[comment.id],
+                                        text: e.target.value
+                                      }
+                                    })}
+                                    placeholder="Escreva sua resposta..."
+                                    className="w-full p-2 bg-gray-900 text-white rounded-lg neon-border text-sm focus:outline-none"
+                                    rows="2"
+                                  ></textarea>
+                                  <div className="flex gap-2 mt-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        if (replyText[comment.id]?.text?.trim()) {
+                                          const updatedComments = comments.map(c => {
+                                            if (c.id === comment.id) {
+                                              return {
+                                                ...c,
+                                                replies: [
+                                                  ...c.replies,
+                                                  {
+                                                    id: c.replies.length + 1,
+                                                    user: replyText[comment.id].user,
+                                                    text: replyText[comment.id].text,
+                                                    timestamp: formatTimestamp(new Date().toISOString()),
+                                                    avatar: replyText[comment.id].avatar,
+                                                  },
+                                                ],
+                                              };
+                                            }
+                                            return c;
+                                          });
+                                          setComments(updatedComments);
+                                          setReplyText({
+                                            ...replyText,
+                                            [comment.id]: {
+                                              user: "",
+                                              text: "",
+                                              avatar: ""
+                                            }
+                                          });
+                                          setShowReply({
+                                            ...showReply,
+                                            [comment.id]: false
+                                          });
+                                        }
+                                      }}
+                                      className="px-3 py-1 action-button text-gray-900 font-semibold rounded-full text-xs"
+                                    >
+                                      Enviar
+                                    </button>
+                                    <button
+                                      onClick={() => setShowReply({
+                                        ...showReply,
+                                        [comment.id]: false
+                                      })}
+                                      className="px-3 py-1 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-xs"
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            }
+                            {
+                              comment.replies.length > 0 && (
+                                <div className="mt-3 ml-6">
+                                  {
+                                    comment.replies.map((reply) => (
+                                      <div key={reply.id} className="flex items-start gap-2 mt-2">
+                                        <img
+                                          src={reply.avatar}
+                                          alt={reply.user}
+                                          className="w-6 h-6 rounded-full border-2 border-neon-blue cursor-pointer"
+                                          onClick={() => {
+                                            setSelectedAvatar(reply.avatar);
+                                            setShowAvatarModal(true);
+                                          }}
+                                          loading="lazy"
+                                        />
+                                        <div>
+                                          <div className="flex items-center gap-1">
+                                            <p
+                                              className="font-semibold neon-blue text-xs cursor-pointer hover:underline"
+                                              onClick={() => {
+                                                setSelectedUser({
+                                                  name: reply.user,
+                                                  isVip: false
+                                                });
+                                                setShowUserInfoModal(true);
+                                              }}
+                                            >
+                                              {reply.user}
+                                            </p>
+                                            <span className="text-gray-400 text-xs">{reply.timestamp}</span>
+                                          </div>
+                                          <p className="text-gray-200 text-xs">{reply.text}</p>
+                                        </div>
+                                      </div>
+                                    ))
+                                  }
+                                </div>
+                              )
+                            }
                           </div>
                         </div>
-                      )}
-                      {comment.replies.length > 0 && (
-                        <div className="mt-3 ml-6">
-                          {comment.replies.map((reply) => (
-                            <div key={reply.id} className="flex items-start gap-2 mt-2">
-                              <img
-                                src={reply.avatar}
-                                alt={reply.user}
-                                className="w-6 h-6 rounded-full border-2 border-neon-blue"
-                                loading="lazy"
-                              />
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <p className="font-semibold neon-blue text-xs">{reply.user}</p>
-                                  <span className="text-gray-400 text-xs">{reply.timestamp}</span>
-                                </div>
-                                <p className="text-gray-200 text-xs">{reply.text}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    ))
+                  }
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )
+            }
+          </div>
+        </CommentsLoadingContext.Provider>
       );
     }
 
@@ -641,7 +920,7 @@
         if (feedback.trim()) {
           setShowSuccessMessage(true);
           setFeedback("");
-          setTimeout(() => setShowSuccessMessage(false), 3000); // Hide message after 3 seconds
+          setTimeout(() => setShowSuccessMessage(false), 3000);
         }
       };
 
