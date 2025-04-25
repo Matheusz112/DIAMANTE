@@ -6,6 +6,7 @@
   <title>Plataforma de Vídeos</title>
   <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
@@ -156,6 +157,37 @@
       background: #00ddeb;
       border-radius: 9999px;
     }
+    .loading-spinner {
+      border: 3px solid #00ddeb;
+      border-top: 3px solid transparent;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    .success-message {
+      background: #1e1e1e;
+      color: #00ddeb;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #00ddeb;
+      box-shadow: 0 0 8px #00ddeb;
+      text-align: center;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      animation: fadeInOut 3s ease-in-out;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(10px); }
+    }
     @media (min-width: 640px) {
       .modal-content {
         max-width: 500px;
@@ -238,16 +270,34 @@
         const savedLikes = localStorage.getItem('likes');
         return savedLikes ? parseInt(savedLikes, 10) : 131;
       });
+      const [showCopyMessage, setShowCopyMessage] = React.useState(false);
+
+      // Function to get random interval between 60s and 90s
+      const getRandomInterval = () => {
+        return Math.floor(Math.random() * (90000 - 60000 + 1)) + 60000; // Random between 60000ms and 90000ms
+      };
 
       React.useEffect(() => {
-        const interval = setInterval(() => {
+        const incrementLikes = () => {
           setLikes(prevLikes => {
             const newLikes = prevLikes + 1;
             localStorage.setItem('likes', newLikes);
             return newLikes;
           });
-        }, 20000);
-        return () => clearInterval(interval);
+        };
+
+        const setNewInterval = () => {
+          const intervalTime = getRandomInterval();
+          const timeoutId = setTimeout(() => {
+            incrementLikes();
+            setNewInterval(); // Set a new interval after increment
+          }, intervalTime);
+          return timeoutId;
+        };
+
+        const timeoutId = setNewInterval();
+
+        return () => clearTimeout(timeoutId); // Cleanup on unmount
       }, []);
 
       const handleLikeClick = () => {
@@ -258,20 +308,41 @@
         });
       };
 
+      const handleShareClick = async () => {
+        const shareLink = "https://matheusz112.github.io/DIAMANTE/DiamanteLegacy";
+        try {
+          await navigator.clipboard.writeText(shareLink);
+          setShowCopyMessage(true);
+          setTimeout(() => setShowCopyMessage(false), 3000); // Hide message after 3 seconds
+        } catch (err) {
+          console.error("Erro ao copiar o link:", err);
+        }
+      };
+
       return (
-        <div className="flex flex-wrap items-center gap-4 mt-4 mx-4 sm:mx-auto max-w-5xl">
-          <button
-            onClick={handleLikeClick}
-            className="action-button flex items-center text-gray-900 font-semibold like-button text-sm px-4 py-2"
-          >
-            <i className="fas fa-thumbs-up icon-hover mr-2"></i> Curtir ({likes})
-          </button>
-          <button className="action-button flex items-center text-gray-900 font-semibold text-sm px-4 py-2">
-            <i className="fas fa-thumbs-down icon-hover mr-2"></i> Não Curtir (12)
-          </button>
-          <button className="action-button flex items-center text-gray-900 font-semibold text-sm px-4 py-2">
-            <i className="fas fa-share icon-hover mr-2"></i> Compartilhar
-          </button>
+        <div className="flex flex-col items-start gap-4 mt-4 mx-4 sm:mx-auto max-w-5xl">
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              onClick={handleLikeClick}
+              className="action-button flex items-center text-gray-900 font-semibold like-button text-sm px-4 py-2"
+            >
+              <i className="fas fa-thumbs-up icon-hover mr-2"></i> Curtir ({likes})
+            </button>
+            <button className="action-button flex items-center text-gray-900 font-semibold text-sm px-4 py-2">
+              <i className="fas fa-thumbs-down icon-hover mr-2"></i> Não Curtir (12)
+            </button>
+            <button
+              onClick={handleShareClick}
+              className="action-button flex items-center text-gray-900 font-semibold text-sm px-4 py-2"
+            >
+              <i className="fas fa-share icon-hover mr-2"></i> Compartilhar
+            </button>
+          </div>
+          {showCopyMessage && (
+            <div className="success-message">
+              Seu link foi copiado com sucesso!
+            </div>
+          )}
         </div>
       );
     }
@@ -358,15 +429,51 @@
     }
 
     function Comments() {
-      const [comments, setComments] = React.useState([
-        { id: 1, user: "João Silva", avatar: "https://i.pravatar.cc/40?img=1", text: "Vídeo incrível, continue assim!", timestamp: "2h", replies: [], isVip: true },
-        { id: 2, user: "Maria Oliveira", avatar: "https://i.pravatar.cc/40?img=2", text: "Adorei o conteúdo, muito bem feito!", timestamp: "1h", replies: [], isVip: false },
-        { id: 3, user: "Pedro Santos", avatar: "https://i.pravatar.cc/40?img=3", text: "Que edição top!", timestamp: "3h", replies: [], isVip: false },
-      ]);
+      const [comments, setComments] = React.useState([]);
       const [showCommentModal, setShowCommentModal] = React.useState(false);
       const [replyText, setReplyText] = React.useState({});
       const [showReply, setShowReply] = React.useState({});
-      const [showAllComments, setShowAllComments] = React.useState(false);
+      const [error, setError] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+
+      // Fetch all comments with pagination
+      React.useEffect(() => {
+        const fetchAllComments = async (url, accumulatedComments = []) => {
+          try {
+            const response = await axios({
+              method: "GET",
+              url: url || "https://api.baserow.io/api/database/rows/table/516801/?user_field_names=true",
+              headers: {
+                Authorization: "Token Zpp1pMg1AYeG0lnXC1De0hIZID19BUM6"
+              }
+            });
+            const newComments = response.data.results.map(item => ({
+              id: item.id,
+              user: item.Name || "Usuário Anônimo",
+              avatar: "https://i.pravatar.cc/40?img=" + (item.id % 20 + 1), // Placeholder avatar
+              text: item.Comentarios || "Sem comentário",
+              timestamp: "Agora", // Placeholder, as API doesn't provide timestamp
+              replies: [],
+              isVip: item.MembroVip || false
+            }));
+            const allComments = [...accumulatedComments, ...newComments];
+            if (response.data.next) {
+              // Fetch next page
+              fetchAllComments(response.data.next, allComments);
+            } else {
+              // No more pages, set comments
+              setComments(allComments);
+              setLoading(false);
+            }
+          } catch (err) {
+            console.error("Erro ao buscar comentários:", err);
+            setError("Não foi possível carregar os comentários. Tente novamente mais tarde.");
+            setLoading(false);
+          }
+        };
+
+        fetchAllComments();
+      }, []);
 
       const handleCommentSubmit = ({ name, avatar, comment }) => {
         setComments([
@@ -414,21 +521,9 @@
         setShowReply({ ...showReply, [commentId]: !showReply[commentId] });
       };
 
-      const displayedComments = showAllComments ? comments : comments.slice(0, 3);
-
       return (
         <div className="mx-4 sm:mx-auto max-w-5xl mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl sm:text-2xl font-semibold neon-blue">Comentários</h2>
-            {comments.length > 3 && (
-              <button
-                onClick={() => setShowAllComments(!showAllComments)}
-                className="text-sm text-neon-blue hover:underline"
-              >
-                {showAllComments ? "Ver menos" : `Ver todos (${comments.length})`}
-              </button>
-            )}
-          </div>
+          <h2 className="text-xl sm:text-2xl font-semibold neon-blue mb-4">Comentários</h2>
           <div className="mb-6">
             <button
               onClick={() => setShowCommentModal(true)}
@@ -442,99 +537,135 @@
               onSubmit={handleCommentSubmit}
             />
           </div>
-          <div className="comment-section">
-            {displayedComments.map((comment) => (
-              <div
-                key={comment.id}
-                className="mb-4 p-4 bg-gray-800 rounded-lg neon-border comment-enter comment-enter-active"
-              >
-                <div className="flex items-start gap-3">
-                  <img
-                    src={comment.avatar}
-                    alt={comment.user}
-                    className="w-8 h-8 rounded-full border-2 border-neon-blue"
-                    loading="lazy"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold neon-blue text-sm">{comment.user}</p>
-                      {comment.isVip && <span className="vip-badge">VIP</span>}
-                      <span className="text-gray-400 text-xs">{comment.timestamp}</span>
-                    </div>
-                    <p className="mt-1 text-gray-200 text-sm">{comment.text}</p>
-                    <button
-                      onClick={() => toggleReply(comment.id)}
-                      className="mt-1 text-xs text-neon-blue hover:underline"
-                    >
-                      Responder
-                    </button>
-                    {showReply[comment.id] && (
-                      <div className="mt-3">
-                        <textarea
-                          value={replyText[comment.id] || ""}
-                          onChange={(e) => setReplyText({ ...replyText, [comment.id]: e.target.value })}
-                          placeholder="Escreva sua resposta..."
-                          className="w-full p-2 bg-gray-900 text-white rounded-lg neon-border text-sm focus:outline-none"
-                          rows="2"
-                        ></textarea>
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={(e) => handleReplySubmit(comment.id, e)}
-                            className="px-3 py-1 action-button text-gray-900 font-semibold rounded-full text-xs"
-                          >
-                            Enviar
-                          </button>
-                          <button
-                            onClick={() => toggleReply(comment.id)}
-                            className="px-3 py-1 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-xs"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
+          {loading ? (
+            <div className="text-center p-4">
+              <div className="loading-spinner"></div>
+              <p className="text-sm text-gray-400 mt-2">Carregando comentários...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-400 text-sm p-4 bg-gray-800 rounded-lg">
+              {error}
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="text-center text-gray-400 text-sm p-4 bg-gray-800 rounded-lg">
+              Nenhum comentário encontrado.
+            </div>
+          ) : (
+            <div className="comment-section">
+              {comments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="mb-4 p-4 bg-gray-800 rounded-lg neon-border comment-enter comment-enter-active"
+                >
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={comment.avatar}
+                      alt={comment.user}
+                      className="w-8 h-8 rounded-full border-2 border-neon-blue"
+                      loading="lazy"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold neon-blue text-sm">{comment.user}</p>
+                        {comment.isVip && <span className="vip-badge">VIP</span>}
+                        <span className="text-gray-400 text-xs">{comment.timestamp}</span>
                       </div>
-                    )}
-                    {comment.replies.length > 0 && (
-                      <div className="mt-3 ml-6">
-                        {comment.replies.map((reply) => (
-                          <div key={reply.id} className="flex items-start gap-2 mt-2">
-                            <img
-                              src={reply.avatar}
-                              alt={reply.user}
-                              className="w-6 h-6 rounded-full border-2 border-neon-blue"
-                              loading="lazy"
-                            />
-                            <div>
-                              <div className="flex items-center gap-1">
-                                <p className="font-semibold neon-blue text-xs">{reply.user}</p>
-                                <span className="text-gray-400 text-xs">{reply.timestamp}</span>
-                              </div>
-                              <p className="text-gray-200 text-xs">{reply.text}</p>
-                            </div>
+                      <p className="mt-1 text-gray-200 text-sm">{comment.text}</p>
+                      <button
+                        onClick={() => toggleReply(comment.id)}
+                        className="mt-1 text-xs text-neon-blue hover:underline"
+                      >
+                        Responder
+                      </button>
+                      {showReply[comment.id] && (
+                        <div className="mt-3">
+                          <textarea
+                            value={replyText[comment.id] || ""}
+                            onChange={(e) => setReplyText({ ...replyText, [comment.id]: e.target.value })}
+                            placeholder="Escreva sua resposta..."
+                            className="w-full p-2 bg-gray-900 text-white rounded-lg neon-border text-sm focus:outline-none"
+                            rows="2"
+                          ></textarea>
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={(e) => handleReplySubmit(comment.id, e)}
+                              className="px-3 py-1 action-button text-gray-900 font-semibold rounded-full text-xs"
+                            >
+                              Enviar
+                            </button>
+                            <button
+                              onClick={() => toggleReply(comment.id)}
+                              className="px-3 py-1 bg-gray-700 text-white rounded-full hover:bg-gray-600 text-xs"
+                            >
+                              Cancelar
+                            </button>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                      {comment.replies.length > 0 && (
+                        <div className="mt-3 ml-6">
+                          {comment.replies.map((reply) => (
+                            <div key={reply.id} className="flex items-start gap-2 mt-2">
+                              <img
+                                src={reply.avatar}
+                                alt={reply.user}
+                                className="w-6 h-6 rounded-full border-2 border-neon-blue"
+                                loading="lazy"
+                              />
+                              <div>
+                                <div className="flex items-center gap-1">
+                                  <p className="font-semibold neon-blue text-xs">{reply.user}</p>
+                                  <span className="text-gray-400 text-xs">{reply.timestamp}</span>
+                                </div>
+                                <p className="text-gray-200 text-xs">{reply.text}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }
 
     function Feedback() {
+      const [feedback, setFeedback] = React.useState("");
+      const [showSuccessMessage, setShowSuccessMessage] = React.useState(false);
+
+      const handleFeedbackSubmit = () => {
+        if (feedback.trim()) {
+          setShowSuccessMessage(true);
+          setFeedback("");
+          setTimeout(() => setShowSuccessMessage(false), 3000); // Hide message after 3 seconds
+        }
+      };
+
       return (
         <div className="mx-4 sm:mx-auto max-w-5xl mt-8 mb-12">
           <h2 className="text-xl sm:text-2xl font-semibold neon-blue mb-4">Feedback</h2>
           <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
             placeholder="Envie seu feedback sobre o vídeo..."
             className="w-full p-3 bg-gray-800 text-white rounded-lg neon-border text-sm focus:outline-none"
             rows="4"
           ></textarea>
-          <button className="mt-3 px-5 py-2 action-button text-gray-900 font-semibold rounded-full text-sm">
+          <button
+            onClick={handleFeedbackSubmit}
+            className="mt-3 px-5 py-2 action-button text-gray-900 font-semibold rounded-full text-sm"
+          >
             Enviar
           </button>
+          {showSuccessMessage && (
+            <div className="success-message">
+              Seu feedback foi enviado com sucesso. Obrigado por nos ajudar!
+            </div>
+          )}
         </div>
       );
     }
